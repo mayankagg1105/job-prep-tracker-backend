@@ -24,16 +24,13 @@ import java.util.List;
 public class SecurityConfig {
 
     private final UserService userService;
-    private final OAuth2AuthorizedClientService authorizedClientService;
 
-    public SecurityConfig(
-            UserService userService,
-            OAuth2AuthorizedClientService authorizedClientService
-    ) {
+    // ✅ ONLY inject UserService (no circular dependency now)
+    public SecurityConfig(UserService userService) {
         this.userService = userService;
-        this.authorizedClientService = authorizedClientService;
     }
 
+    // ✅ Bean for OAuth2AuthorizedClientService
     @Bean
     public OAuth2AuthorizedClientService authorizedClientService(
             ClientRegistrationRepository clientRegistrationRepository) {
@@ -48,25 +45,21 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
 
                 .authorizeHttpRequests(auth -> auth
-                        // public endpoints
                         .requestMatchers(
                                 "/",
                                 "/error",
                                 "/login/**",
                                 "/oauth2/**"
                         ).permitAll()
-
-                        // API must be authenticated
                         .requestMatchers("/api/**", "/job/**").authenticated()
-
                         .anyRequest().authenticated()
                 )
 
                 .oauth2Login(oauth -> oauth
-                        .successHandler(authenticationSuccessHandler())
+                        // ✅ Injected properly via method
+                        .successHandler(authenticationSuccessHandler(authorizedClientService(null)))
                 )
 
-                // IMPORTANT: APIs should return JSON, not redirect HTML
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint((req, res, e) -> {
                             res.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
@@ -78,8 +71,11 @@ public class SecurityConfig {
         return http.build();
     }
 
+    // ✅ METHOD INJECTION (no constructor dependency)
     @Bean
-    public AuthenticationSuccessHandler authenticationSuccessHandler() {
+    public AuthenticationSuccessHandler authenticationSuccessHandler(
+            OAuth2AuthorizedClientService authorizedClientService) {
+
         return (request, response, authentication) -> {
 
             OAuth2User oauth2User = (OAuth2User) authentication.getPrincipal();
@@ -96,6 +92,7 @@ public class SecurityConfig {
                 userService.saveOAuthUser(email, googleId, client);
             }
 
+            // ⚠️ CHANGE THIS for production
             response.sendRedirect("http://localhost:5173/dashboard");
         };
     }
