@@ -14,7 +14,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/tasks")
-@CrossOrigin(origins = "https://job-prep-tracker-seven.vercel.app", allowCredentials = "true")
+@CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
 public class TaskController {
 
     @Autowired
