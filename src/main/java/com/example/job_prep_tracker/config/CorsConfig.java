@@ -13,7 +13,7 @@ public class CorsConfig {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/**")
-                        .allowedOrigins("*") // later restrict to Vercel domain
+                        .allowedOrigins("https://job-prep-tracker-seven.vercel.app") // later restrict to Vercel domain
                         .allowedMethods("*");
             }
         };
