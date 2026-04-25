@@ -43,6 +43,7 @@ public class OAuth2LoginSuccessHandler
         });
 
         // redirect to frontend
-        response.sendRedirect("http://localhost:5173/dashboard");
+//        response.sendRedirect("http://localhost:5173/dashboard");
+        response.sendRedirect("https://job-prep-tracker-frontend.onrender.com/dashboard");
     }
 }
