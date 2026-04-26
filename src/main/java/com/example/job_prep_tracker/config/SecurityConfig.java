@@ -2,6 +2,7 @@ package com.example.job_prep_tracker.config;
 
 import com.example.job_prep_tracker.service.UserService;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -25,20 +26,26 @@ public class SecurityConfig {
 
     private final UserService userService;
 
-    // ✅ ONLY inject UserService (no circular dependency now)
+    @Value("${frontend.url}")
+    private String frontendUrl;
+
     public SecurityConfig(UserService userService) {
         this.userService = userService;
     }
 
-    // ✅ Bean for OAuth2AuthorizedClientService
+    // ✅ OAuth2 client service bean
     @Bean
     public OAuth2AuthorizedClientService authorizedClientService(
             ClientRegistrationRepository clientRegistrationRepository) {
         return new InMemoryOAuth2AuthorizedClientService(clientRegistrationRepository);
     }
 
+    // ✅ MAIN SECURITY CONFIG
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(
+            HttpSecurity http,
+            OAuth2AuthorizedClientService authorizedClientService
+    ) throws Exception {
 
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
@@ -56,8 +63,7 @@ public class SecurityConfig {
                 )
 
                 .oauth2Login(oauth -> oauth
-                        // ✅ Injected properly via method
-                        .successHandler(authenticationSuccessHandler(authorizedClientService(null)))
+                        .successHandler(authenticationSuccessHandler(authorizedClientService))
                 )
 
                 .exceptionHandling(ex -> ex
@@ -71,7 +77,7 @@ public class SecurityConfig {
         return http.build();
     }
 
-    // ✅ METHOD INJECTION (no constructor dependency)
+    // ✅ SUCCESS HANDLER (after Google login)
     @Bean
     public AuthenticationSuccessHandler authenticationSuccessHandler(
             OAuth2AuthorizedClientService authorizedClientService) {
@@ -92,21 +98,24 @@ public class SecurityConfig {
                 userService.saveOAuthUser(email, googleId, client);
             }
 
-            // ⚠️ CHANGE THIS for production
-            response.sendRedirect("http://localhost:5173/dashboard");
+            // ✅ Redirect to frontend (Vercel)
+            response.sendRedirect(frontendUrl + "/dashboard");
         };
     }
 
+    // ✅ CORS CONFIG
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:5173"));
+
+        config.setAllowedOrigins(List.of(frontendUrl));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source =
                 new UrlBasedCorsConfigurationSource();
+
         source.registerCorsConfiguration("/**", config);
         return source;
     }

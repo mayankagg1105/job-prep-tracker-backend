@@ -14,15 +14,14 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/tasks")
-@CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
 public class TaskController {
 
     @Autowired
     private TaskService taskService;
 
     @GetMapping("/hello")
-    public String hello(){
-        return "hello mayank and anmol ";
+    public String hello() {
+        return "hello mayank and anmol";
     }
 
     @PostMapping("/sync")
